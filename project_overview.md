@@ -1,13 +1,40 @@
 # 🌊 AquaWare — Penjelasan Lengkap Project
 
-## Ringkasan
+## 💡 Penjelasan Sederhana (Bahasa Orang Awam)
 
-**AquaWare** adalah web app monitoring kelayakan air bersih berbasis **Context-Aware IoT**. Project ini dibuat sebagai tugas kuliah Semester 6 (KPU) yang mensimulasikan sistem IoT monitoring kualitas air — lengkap dengan **machine learning**, **realtime dashboard**, dan **autentikasi dua jalur** (manusia & perangkat).
+Bayangkan project ini sebagai **sistem pemantau kualitas air pintar**. 
+Tujuan utamanya adalah secara otomatis mendeteksi apakah air di suatu tempat (misalnya tandon atau danau) aman dan layak minum atau tidak.
 
-> [!IMPORTANT]
-> Karena hardware sensor fisik (ESP32/Arduino) belum tersedia, sistem menggunakan **dataset sekunder dari Kaggle** yang di-replay oleh sebuah **device simulator** seolah-olah data datang dari sensor asli. Arsitekturnya sudah dirancang **hardware-ready** — saat sensor fisik siap, cukup ganti simulator tanpa mengubah backend maupun frontend.
+Karena saat ini kita **belum punya alat sensor fisiknya** (seperti alat Arduino/ESP32 sungguhan), kita menggunakan program **"Simulator"**. Simulator ini bertugas *berpura-pura* menjadi alat sensor. Caranya adalah dengan membaca data dari file Excel/CSV (dataset dari Kaggle) yang berisi contoh-contoh kualitas air, lalu mengirimkannya ke sistem kita setiap beberapa detik.
+
+Sistem kita (Backend) punya "otak buatan" (**Machine Learning**) yang akan memproses data tersebut dan langsung menebak: *"Apakah air ini layak minum?"*. Hasil tebakannya ini akan langsung berkedip dan muncul di layar komputermu (Dashboard) secara *real-time* atau langsung saat itu juga!
 
 ---
+
+## 🚀 Cara Cepat Menjalankan Project (Quick Start)
+
+Jika kamu ingin langsung melihat project ini berjalan, ikuti 3 langkah mudah ini (pastikan kamu sudah buka terminal/Command Prompt di folder project ini):
+
+**Langkah 1: Jalankan Mesin Utama (Backend)**
+Buka terminal dan ketik perintah ini:
+`python -m uvicorn backend.main:app --reload --port 8000`
+*(Biarkan terminal ini tetap terbuka dan berjalan)*
+
+**Langkah 2: Nyalakan Sensor Buatan (Simulator)**
+Buka terminal **baru** (jangan tutup yang lama), lalu ketik:
+`python simulator/device_simulator.py`
+*(Ini akan membuat program mulai mengirim data air bohongan ke server tiap 5 detik)*
+
+**Langkah 3: Jalankan Aplikasi Layar (Frontend)**
+Buka terminal **baru** (ketiga), masuk ke folder `frontend`, lalu install dependencies dan jalankan:
+`cd frontend`
+`npm install`
+`npm run dev`
+*(Buka URL yang muncul di terminal, misal http://localhost:5173)*
+
+---
+
+## 🛠️ Penjelasan Teknis & Arsitektur Sistem (Tingkat Lanjut)
 
 ## Arsitektur Sistem
 
@@ -17,9 +44,9 @@ graph LR
     B -- "POST /api/sensor-data<br/>+ X-Device-Key header" --> C["FastAPI Backend<br/>main.py"]
     C -- "ML Prediction" --> D["RandomForest Model<br/>model.pkl"]
     C -- "Rule-Based Check" --> E["Context Engine<br/>preprocess.py"]
-    C -- "WebSocket broadcast" --> F["Dashboard<br/>index.html"]
-    C -- "SQLite" --> G["readings.db"]
-    H["User Login<br/>login.html"] -- "POST /api/auth/login<br/>→ Bearer token" --> F
+    C -- "WebSocket broadcast" --> F["React Dashboard<br/>Frontend (Vite)"]
+    C -- "PostgreSQL" --> G["PostgreSQL DB<br/>(Supabase/Local)"]
+    H["User Login<br/>Supabase Auth"] -- "JWT Bearer Token" --> F
 ```
 
 ---
@@ -32,11 +59,10 @@ graph LR
 | [ml/preprocess.py](file:///d:/Tugas/Semester%206/KPU/water-quality-iot/ml/preprocess.py) | Preprocessing data + rule-based context engine (ambang batas WHO/Permenkes) |
 | [ml/train_model.py](file:///d:/Tugas/Semester%206/KPU/water-quality-iot/ml/train_model.py) | Training model RandomForest → menghasilkan `model.pkl` |
 | [ml/model.pkl](file:///d:/Tugas/Semester%206/KPU/water-quality-iot/ml/model.pkl) | Model ML yang sudah dilatih (~1.5 MB) |
-| [backend/main.py](file:///d:/Tugas/Semester%206/KPU/water-quality-iot/backend/main.py) | FastAPI server: REST API + WebSocket + SQLite |
-| [backend/auth.py](file:///d:/Tugas/Semester%206/KPU/water-quality-iot/backend/auth.py) | Modul autentikasi (password hashing, token, device key) |
+| [backend/main.py](file:///d:/Tugas/Semester%206/KPU/water-quality-iot/backend/main.py) | FastAPI server: REST API + WebSocket + PostgreSQL |
+| [backend/auth.py](file:///d:/Tugas/Semester%206/KPU/water-quality-iot/backend/auth.py) | Modul autentikasi (Supabase JWT verification, device key) |
 | [simulator/device_simulator.py](file:///d:/Tugas/Semester%206/KPU/water-quality-iot/simulator/device_simulator.py) | Simulator perangkat IoT — membaca CSV & POST ke backend |
-| [frontend/login.html](file:///d:/Tugas/Semester%206/KPU/water-quality-iot/frontend/login.html) | Halaman login |
-| [frontend/index.html](file:///d:/Tugas/Semester%206/KPU/water-quality-iot/frontend/index.html) | Dashboard realtime monitoring |
+| `frontend/` | Aplikasi frontend berbasis React + Vite |
 
 ---
 
@@ -74,8 +100,6 @@ Contoh output: `"ph terlalu rendah (5.23, minimum 6.5)"` — langsung bisa dipah
 
 | Endpoint | Method | Auth | Fungsi |
 |---|---|---|---|
-| `/api/auth/login` | POST | — | Login → dapat token |
-| `/api/auth/change-password` | POST | Bearer token | Ganti password |
 | `/api/sensor-data` | POST | X-Device-Key | Terima data sensor, jalankan ML + rule-based, simpan, broadcast via WS |
 | `/api/latest?limit=N` | GET | Bearer token | Ambil N pembacaan terbaru |
 | `/api/history?limit=N` | GET | Bearer token | Ambil riwayat N pembacaan |
@@ -87,7 +111,7 @@ Contoh output: `"ph terlalu rendah (5.23, minimum 6.5)"` — langsung bisa dipah
 2. Backend verifikasi device key
 3. Data diproses oleh ML model → prediksi `layak/tidak layak` + probability
 4. Data diproses oleh rule-based engine → cek ambang batas + alasan
-5. Hasil disimpan ke SQLite (`readings.db`)
+5. Hasil disimpan ke PostgreSQL
 6. Hasil di-broadcast ke semua WebSocket client (dashboard)
 
 ### 4. 🔐 Sistem Autentikasi
@@ -97,16 +121,16 @@ Contoh output: `"ph terlalu rendah (5.23, minimum 6.5)"` — langsung bisa dipah
 Dua jalur auth yang terpisah, sesuai kelaziman arsitektur IoT:
 
 - **User Login** (untuk manusia/dashboard):
-  - Password hashing: PBKDF2-HMAC-SHA256 (100.000 iterasi, salt 16 byte)
-  - Token: HMAC-signed custom token (mirip JWT tapi minimal), berlaku 8 jam
-  - Disimpan di `localStorage` browser
+  - Menggunakan **Supabase Auth** untuk login
+  - Token: JWT Bearer Token yang diverifikasi oleh backend menggunakan library PyJWT
+  - Disimpan dengan aman oleh client/frontend
 
 - **Device API Key** (untuk simulator/sensor):
   - Static API key via header `X-Device-Key`
   - Diverifikasi pakai `hmac.compare_digest` (timing-safe comparison)
 
 > [!NOTE]
-> Semua implementasi auth hanya pakai Python standard library (`hashlib`, `hmac`, `secrets`) — tanpa dependency tambahan.
+> Implementasi auth kini menggunakan Supabase untuk User Login dan `hmac` dari Python stdlib untuk Device Key.
 
 ### 5. 📡 Device Simulator
 
@@ -119,9 +143,9 @@ Dua jalur auth yang terpisah, sesuai kelaziman arsitektur IoT:
 
 ### 6. 🖼️ Frontend Dashboard
 
-**File**: [index.html](file:///d:/Tugas/Semester%206/KPU/water-quality-iot/frontend/index.html) + [login.html](file:///d:/Tugas/Semester%206/KPU/water-quality-iot/frontend/login.html)
+**Folder**: `frontend/` (Aplikasi React + Vite)
 
-- **Login page**: Form sederhana → POST ke `/api/auth/login` → simpan token di `localStorage`
+- **Login page**: Di-handle menggunakan Supabase Auth di dalam aplikasi React.
 - **Dashboard (2 Tab Utama)**:
   - **Tab Real-time**:
     - Status hero: indicator besar LAYAK/TIDAK LAYAK + probabilitas model
@@ -133,8 +157,8 @@ Dua jalur auth yang terpisah, sesuai kelaziman arsitektur IoT:
     - Grafik historis garis waktu panjang
     - Tabel data terpaginasi (*Data Table*)
     - Tombol unduh laporan CSV
-  - Koneksi WebSocket ke `/ws` dengan auto-reconnect saat terputus
-  - Redirect otomatis ke login jika token tidak ada / expired
+  - Koneksi WebSocket ke `/ws` dengan auto-reconnect saat terputus dikelola di komponen React.
+  - Redirect otomatis ke login jika token tidak ada / expired (via React Router / State).
 
 ---
 
@@ -143,16 +167,15 @@ Dua jalur auth yang terpisah, sesuai kelaziman arsitektur IoT:
 ```mermaid
 sequenceDiagram
     participant U as User (Browser)
-    participant L as login.html
-    participant D as index.html (Dashboard)
+    participant L as Supabase Auth
+    participant D as React Dashboard
     participant B as Backend (FastAPI)
     participant S as Simulator
     participant M as ML Model
 
-    U->>L: Buka halaman login
-    L->>B: POST /api/auth/login
-    B-->>L: token + username
-    L->>D: Redirect + simpan token
+    U->>L: Login
+    L-->>U: JWT Token & Session
+    U->>D: Akses Dashboard dengan Token
 
     D->>B: WebSocket /ws?token=xxx
     B-->>D: Connected ✓
@@ -162,7 +185,7 @@ sequenceDiagram
         B->>M: predict(reading)
         M-->>B: prediction + probability
         B->>B: rule_based_status(reading)
-        B->>B: Simpan ke SQLite
+        B->>B: Simpan ke PostgreSQL
         B-->>D: WebSocket broadcast (realtime)
         D->>D: Update UI (status, cards, chart, log)
     end
@@ -174,10 +197,10 @@ sequenceDiagram
 
 | Layer | Teknologi |
 |---|---|
-| Backend | Python, FastAPI, SQLite, Uvicorn, SlowAPI |
+| Backend | Python, FastAPI, PostgreSQL, psycopg2, Uvicorn, SlowAPI |
 | ML | scikit-learn (RandomForest), pandas, joblib |
-| Frontend | HTML/CSS/JS vanilla, Chart.js |
-| Auth | Python stdlib (hashlib, hmac, secrets) |
+| Frontend | React, Vite (Tailwind/CSS) |
+| Auth | Supabase Auth, PyJWT, hmac |
 | Komunikasi | REST API + WebSocket |
 | Data | CSV (Kaggle Water Potability dataset) |
 

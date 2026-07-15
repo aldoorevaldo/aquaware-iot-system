@@ -7,7 +7,12 @@ device_simulator.py yang me-replay dataset sekunder sebagai virtual sensor.
 
 Jalankan: uvicorn backend.main:app --reload --port 8000
 """
-import sys, os, json, sqlite3
+import sys, os, json
+from dotenv import load_dotenv
+load_dotenv()
+
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from datetime import datetime, timezone
 from typing import Optional, List
 
@@ -27,7 +32,7 @@ from pydantic import BaseModel
 from preprocess import FEATURES, rule_based_status
 import auth
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "readings.db")
+DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/aquaware")
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "ml", "model.pkl")
 DEFAULT_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "aquaware123")
 
@@ -43,10 +48,11 @@ app.add_middleware(
 
 # ---------- storage ----------
 def init_db():
-    con = sqlite3.connect(DB_PATH)
-    con.execute("""
+    con = psycopg2.connect(DATABASE_URL)
+    cursor = con.cursor()
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS readings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             ts TEXT NOT NULL,
             device_id TEXT,
             ph REAL, Hardness REAL, Solids REAL, Chloramines REAL, Sulfate REAL,
@@ -54,39 +60,14 @@ def init_db():
             prediction INTEGER, probability REAL, rule_based INTEGER
         )
     """)
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL
-        )
-    """)
-    # seed akun admin default kalau belum ada user sama sekali
-    row = con.execute("SELECT COUNT(*) FROM users").fetchone()
-    if row[0] == 0:
-        con.execute(
-            "INSERT INTO users (username, password_hash) VALUES (?, ?)",
-            ("admin", auth.hash_password(DEFAULT_ADMIN_PASSWORD)),
-        )
-        print(f"[auth] Akun admin default dibuat -> username: admin, password: {DEFAULT_ADMIN_PASSWORD}")
-        print("[auth] SEGERA ganti password ini setelah login pertama kali.")
     con.commit()
+    cursor.close()
     con.close()
 
 init_db()
 
 # ---------- model ----------
 _bundle = joblib.load(MODEL_PATH) if os.path.exists(MODEL_PATH) else None
-
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-
-
-class ChangePasswordRequest(BaseModel):
-    old_password: str
-    new_password: str
 
 
 def require_user(authorization: str = Header(default=None)):
@@ -96,6 +77,7 @@ def require_user(authorization: str = Header(default=None)):
     payload = auth.verify_token(authorization.removeprefix("Bearer ").strip())
     if not payload:
         raise HTTPException(status_code=401, detail="Token tidak valid atau sudah kedaluwarsa.")
+    # Supabase uses 'sub' for the user ID
     return payload["sub"]
 
 
@@ -156,37 +138,6 @@ def predict(reading: dict) -> dict:
     return {"prediction": pred, "probability": round(float(proba[1]), 3)}
 
 
-@app.post("/api/auth/login")
-@limiter.limit("5/minute")
-def login(request: Request, body: LoginRequest):
-    con = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
-    user = con.execute(
-        "SELECT * FROM users WHERE username = ?", (body.username,)
-    ).fetchone()
-    con.close()
-    if not user or not auth.verify_password(body.password, user["password_hash"]):
-        raise HTTPException(status_code=401, detail="Username atau password salah.")
-    return {"token": auth.create_token(user["username"]), "username": user["username"]}
-
-
-@app.post("/api/auth/change-password")
-def change_password(body: ChangePasswordRequest, username: str = Depends(require_user)):
-    con = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
-    user = con.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
-    if not user or not auth.verify_password(body.old_password, user["password_hash"]):
-        con.close()
-        raise HTTPException(status_code=401, detail="Password lama salah.")
-    con.execute(
-        "UPDATE users SET password_hash = ? WHERE username = ?",
-        (auth.hash_password(body.new_password), username),
-    )
-    con.commit()
-    con.close()
-    return {"status": "ok", "message": "Password berhasil diganti."}
-
-
 @app.post("/api/sensor-data")
 @limiter.limit("120/minute")
 async def ingest_sensor_data(request: Request, reading: SensorReading, _: bool = Depends(require_device)):
@@ -195,15 +146,17 @@ async def ingest_sensor_data(request: Request, reading: SensorReading, _: bool =
     rb_result = rule_based_status(data)
 
     ts = datetime.now(timezone.utc).isoformat()
-    con = sqlite3.connect(DB_PATH)
-    con.execute(
+    con = psycopg2.connect(DATABASE_URL)
+    cursor = con.cursor()
+    cursor.execute(
         f"""INSERT INTO readings
         (ts, device_id, {", ".join(FEATURES)}, prediction, probability, rule_based)
-        VALUES (?, ?, {", ".join(["?"] * len(FEATURES))}, ?, ?, ?)""",
+        VALUES (%s, %s, {", ".join(["%s"] * len(FEATURES))}, %s, %s, %s)""",
         [ts, data["device_id"]] + [data[f] for f in FEATURES]
         + [ml_result["prediction"], ml_result["probability"], int(rb_result["layak_rule_based"])],
     )
     con.commit()
+    cursor.close()
     con.close()
 
     payload = {
@@ -219,33 +172,39 @@ async def ingest_sensor_data(request: Request, reading: SensorReading, _: bool =
 
 @app.get("/api/latest")
 def get_latest(limit: int = 1, username: str = Depends(require_user)):
-    con = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
-    rows = con.execute(
-        "SELECT * FROM readings ORDER BY id DESC LIMIT ?", (limit,)
-    ).fetchall()
+    con = psycopg2.connect(DATABASE_URL)
+    cursor = con.cursor(cursor_factory=RealDictCursor)
+    cursor.execute(
+        "SELECT * FROM readings ORDER BY id DESC LIMIT %s", (limit,)
+    )
+    rows = cursor.fetchall()
+    cursor.close()
     con.close()
     return [dict(r) for r in rows]
 
 
 @app.get("/api/history")
 def get_history(limit: int = 100, username: str = Depends(require_user)):
-    con = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
-    rows = con.execute(
-        "SELECT * FROM (SELECT * FROM readings ORDER BY id DESC LIMIT ?) ORDER BY id ASC", (limit,)
-    ).fetchall()
+    con = psycopg2.connect(DATABASE_URL)
+    cursor = con.cursor(cursor_factory=RealDictCursor)
+    cursor.execute(
+        "SELECT * FROM (SELECT * FROM readings ORDER BY id DESC LIMIT %s) sub ORDER BY id ASC", (limit,)
+    )
+    rows = cursor.fetchall()
+    cursor.close()
     con.close()
     return [dict(r) for r in rows]
 
 
 @app.get("/api/export")
 def export_csv(limit: int = 1000, username: str = Depends(require_user)):
-    con = sqlite3.connect(DB_PATH)
-    con.row_factory = sqlite3.Row
-    rows = con.execute(
-        "SELECT * FROM (SELECT * FROM readings ORDER BY id DESC LIMIT ?) ORDER BY id ASC", (limit,)
-    ).fetchall()
+    con = psycopg2.connect(DATABASE_URL)
+    cursor = con.cursor(cursor_factory=RealDictCursor)
+    cursor.execute(
+        "SELECT * FROM (SELECT * FROM readings ORDER BY id DESC LIMIT %s) sub ORDER BY id ASC", (limit,)
+    )
+    rows = cursor.fetchall()
+    cursor.close()
     con.close()
     
     if not rows:
@@ -258,7 +217,7 @@ def export_csv(limit: int = 1000, username: str = Depends(require_user)):
     writer.writerow(rows[0].keys())
     # Baris data
     for r in rows:
-        writer.writerow(tuple(r))
+        writer.writerow(tuple(r.values()))
         
     response = Response(content=output.getvalue(), media_type="text/csv")
     response.headers["Content-Disposition"] = f"attachment; filename=aquaware_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
