@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+scikit-learn
+pandas
+slowapi
+joblib
+requests
+python-multipart
