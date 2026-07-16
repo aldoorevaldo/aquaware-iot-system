@@ -12,7 +12,7 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -40,25 +40,25 @@ export default function Login() {
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
             <div style={{ background: 'rgba(6, 182, 212, 0.1)', padding: '16px', borderRadius: '50%', border: '1px solid var(--border-glass)' }}>
-               <Droplet color="var(--neon-cyan)" size={32} />
+              <Droplet color="var(--neon-cyan)" size={32} />
             </div>
           </div>
-          <h1 style={{ fontSize: '28px', background: 'linear-gradient(to right, #fff, #9ca3af)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '8px' }}>AquaWare</h1>
+          <h1 style={{ fontSize: '28px', background: 'linear-gradient(to right, #fff, #9ca3af)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '8px' }}>AquaAware</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Sistem Monitoring Kelayakan Air</p>
         </div>
 
         {error && (
           <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <Shield size={16} /> {error}
+            <Shield size={16} /> {error}
           </div>
         )}
 
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>Email</label>
-            <input 
-              type="email" 
-              className="input-glass" 
+            <input
+              type="email"
+              className="input-glass"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -66,9 +66,9 @@ export default function Login() {
           </div>
           <div>
             <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '6px' }}>Password</label>
-            <input 
-              type="password" 
-              className="input-glass" 
+            <input
+              type="password"
+              className="input-glass"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
