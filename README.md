@@ -1,11 +1,11 @@
-# 🌊 AquaWare: Intelligent Water Quality Monitoring
+# 🌊 AquaAware: Intelligent Water Quality Monitoring
 
 ![React](https://img.shields.io/badge/Frontend-React_Vite-61DAFB?logo=react&logoColor=black)
 ![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-336791?logo=postgresql&logoColor=white)
 ![Machine Learning](https://img.shields.io/badge/AI-Random_Forest-FF6F00?logo=scikitlearn&logoColor=white)
 
-**AquaWare** adalah sistem pemantauan kelayakan air bersih mutakhir berbasis *Internet of Things* (IoT) yang diperkuat dengan *Machine Learning*. 
+**AquaAware** adalah sistem pemantauan kelayakan air bersih mutakhir berbasis *Internet of Things* (IoT) yang diperkuat dengan *Machine Learning*. 
 
 Sistem ini dirancang untuk menganalisis kualitas air secara **Real-Time** melalui 9 parameter kimiawi krusial. Sistem secara otomatis memberikan keputusan kelayakan air menggunakan dua lapis analisis (Context-Aware):
 1. **Machine Learning Model:** Mendeteksi pola kompleks secara holistik.
@@ -61,7 +61,7 @@ python simulator/device_simulator.py
 
 ## 🛡️ Sistem Keamanan & Autentikasi
 
-AquaWare menggunakan arsitektur keamanan tingkat industri yang dirancang khusus untuk ekosistem IoT, memisahkan secara ketat antara **Hak Akses Manusia** dan **Hak Akses Mesin**.
+AquaAware menggunakan arsitektur keamanan tingkat industri yang dirancang khusus untuk ekosistem IoT, memisahkan secara ketat antara **Hak Akses Manusia** dan **Hak Akses Mesin**.
 
 | Metode | Pengguna | Cara Kerja |
 |---|---|---|

@@ -1,16 +1,16 @@
-# 🌊 AquaWare — Arsitektur & Penjelasan Teknis
+# 🌊 AquaAware — Arsitektur & Penjelasan Teknis
 
-Dokumen ini merangkum seluruh arsitektur teknis, alur data, dan penjelasan fungsional dari sistem AquaWare.
+Dokumen ini merangkum seluruh arsitektur teknis, alur data, dan penjelasan fungsional dari sistem AquaAware.
 
 ---
 
 ## 🚀 Ringkasan Cara Kerja (Bagi Non-Teknis)
 
-Sederhananya, AquaWare adalah **sistem pemantau kualitas air pintar**. Sistem secara otomatis mendeteksi apakah air di suatu tempat (tandon, pipa pasokan, atau danau) aman dan layak minum.
+Sederhananya, AquaAware adalah **sistem pemantau kualitas air pintar**. Sistem secara otomatis mendeteksi apakah air di suatu tempat (tandon, pipa pasokan, atau danau) aman dan layak minum.
 
 Karena sistem ini masih dalam tahap *software simulation* (belum diintegrasikan dengan sensor mikrokontroler fisik seperti Arduino/ESP32), kami menggunakan **Simulator** (berbasis Python) yang membaca rekaman historis dari Dataset Kaggle lalu menembakkannya ke server seolah-olah itu adalah data *real-time* dari perangkat fisik. 
 
-Begitu data masuk ke server, "Otak Buatan" (*Machine Learning*) milik AquaWare akan menganalisis kandungannya dan menampilkan status kelayakan secara seketika (*Real-Time*) di layar Dashboard pengguna!
+Begitu data masuk ke server, "Otak Buatan" (*Machine Learning*) milik AquaAware akan menganalisis kandungannya dan menampilkan status kelayakan secara seketika (*Real-Time*) di layar Dashboard pengguna!
 
 ---
 
@@ -37,7 +37,7 @@ Menggunakan model **RandomForestClassifier** yang terlatih untuk mengklasifikasi
 - **Pre-processing Otomatis:** Sistem secara pintar menangani data yang hilang (missing values) menggunakan teknik *median imputation*.
 
 ### 2. 🧠 Context Engine (Rule-Based)
-Ini adalah fitur unik AquaWare yang menjadikannya **"Context-Aware"**. Selain prediksi dari AI, sistem juga memvalidasi data terhadap standar mutlak dari **WHO / Permenkes (492/2010)**.
+Ini adalah fitur unik AquaAware yang menjadikannya **"Context-Aware"**. Selain prediksi dari AI, sistem juga memvalidasi data terhadap standar mutlak dari **WHO / Permenkes (492/2010)**.
 
 | Parameter Fisik/Kimia | Standar Batas Aman |
 |---|---|
