@@ -25,7 +25,7 @@ from preprocess import load_and_clean, FEATURES
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "water_potability.csv")
 API_URL = os.environ.get("API_URL", "http://localhost:8000/api/sensor-data")
-INTERVAL_SECONDS = float(os.environ.get("INTERVAL_SECONDS", "5"))
+INTERVAL_SECONDS = float(os.environ.get("INTERVAL_SECONDS", "10"))
 DEVICE_ID = os.environ.get("DEVICE_ID", "sim-01")
 DEVICE_API_KEY = os.environ.get("DEVICE_API_KEY", "Aqua-Sensor-8257")
 HEADERS = {"X-Device-Key": DEVICE_API_KEY}
@@ -44,26 +44,30 @@ def main():
     print(f"[simulator] {len(df)} baris data siap di-stream sebagai sensor '{DEVICE_ID}'")
     print(f"[simulator] mengirim ke {API_URL} setiap {INTERVAL_SECONDS}s")
 
-    while True:
-        for row in stream_rows(df):
-            payload = {"device_id": DEVICE_ID, **{f: float(row[f]) for f in FEATURES}}
-            try:
-                resp = requests.post(API_URL, json=payload, headers=HEADERS, timeout=5)
-                resp.raise_for_status()
-                result = resp.json()
-                status = "LAYAK" if result["ml"]["prediction"] == 1 else "TIDAK LAYAK"
-                print(f"[simulator] terkirim | pH={row['ph']:.2f} "
-                      f"Turbidity={row['Turbidity']:.2f} -> prediksi: {status} "
-                      f"(prob={result['ml']['probability']})")
-            except requests.HTTPError as e:
-                if resp.status_code == 401:
-                    print("[simulator] DITOLAK: device API key salah. Cek env var DEVICE_API_KEY "
-                          "harus sama dengan yang di-set pada backend.")
-                else:
+    try:
+        while True:
+            for row in stream_rows(df):
+                payload = {"device_id": DEVICE_ID, **{f: float(row[f]) for f in FEATURES}}
+                try:
+                    resp = requests.post(API_URL, json=payload, headers=HEADERS, timeout=5)
+                    resp.raise_for_status()
+                    result = resp.json()
+                    status = "LAYAK" if result["ml"]["prediction"] == 1 else "TIDAK LAYAK"
+                    print(f"[simulator] terkirim | pH={row['ph']:.2f} "
+                          f"Turbidity={row['Turbidity']:.2f} -> prediksi: {status} "
+                          f"(prob={result['ml']['probability']})")
+                except requests.HTTPError as e:
+                    if resp.status_code == 401:
+                        print("[simulator] DITOLAK: device API key salah. Cek env var DEVICE_API_KEY "
+                              "harus sama dengan yang di-set pada backend.")
+                    else:
+                        print(f"[simulator] gagal mengirim data: {e}")
+                except requests.RequestException as e:
                     print(f"[simulator] gagal mengirim data: {e}")
-            except requests.RequestException as e:
-                print(f"[simulator] gagal mengirim data: {e}")
-            time.sleep(INTERVAL_SECONDS)
+                time.sleep(INTERVAL_SECONDS)
+    except KeyboardInterrupt:
+        print("\n[simulator] Pengiriman data dihentikan oleh pengguna (Ctrl+C).")
+        print("[simulator] Mematikan sensor...")
 
 
 if __name__ == "__main__":
