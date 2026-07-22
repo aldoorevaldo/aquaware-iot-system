@@ -15,9 +15,6 @@ SUPABASE_JWT_SECRET = os.environ.get("SUPABASE_JWT_SECRET", "dummy-secret-if-not
 def verify_token(token: str):
     try:
         # Decode using PyJWT
-        # Catatan: Supabase terbaru menggunakan algoritma asimetris (ES256) untuk token sesi,
-        # sehingga JWT Secret simetris (HS256) tidak bisa langsung dipakai. 
-        # Untuk proyek IoT lokal ini, kita skip verifikasi signature dan langsung baca payload-nya.
         payload = jwt.decode(
             token, 
             options={"verify_signature": False, "verify_aud": False}
