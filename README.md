@@ -12,13 +12,12 @@ POST/publish ke endpoint yang sama; backend dan frontend tidak perlu diubah.
 ## Struktur project
 
 ```
-data/                     dataset & script pembuat sample data
+data/                      dataset & script pembuat sample data
 ml/                        preprocessing, training, model tersimpan (model.pkl)
 backend/main.py            FastAPI: sensor data, prediksi, riwayat, WebSocket
-backend/auth.py             login, hashing password, device API key
+backend/auth.py            login, hashing password, device API key
 simulator/                 device simulator (pengganti hardware)
-frontend/login.html        halaman login
-frontend/index.html        dashboard realtime (butuh login)
+frontend/                  dashboard React/Vite (UI modern)
 ```
 
 ## 1. Siapkan dataset asli
@@ -61,10 +60,17 @@ Atur interval dan device id lewat env var:
 INTERVAL_SECONDS=5 DEVICE_ID=sim-tandon-01 python simulator/device_simulator.py
 ```
 
-## 6. Buka dashboard
+## 6. Jalankan Frontend (Dashboard)
 
-Buka `frontend/index.html` langsung di browser (pastikan backend sudah
-jalan di `localhost:8000`).
+Buka terminal baru, masuk ke folder `frontend`, lalu install *dependencies* dan jalankan server *development*:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Buka URL yang muncul di terminal (biasanya `http://localhost:5173`). Pastikan backend juga sudah berjalan.
 
 ## Keamanan: login &amp; device key
 
@@ -72,7 +78,7 @@ Sistem punya dua jalur autentikasi terpisah, sesuai kelaziman arsitektur IoT:
 
 | Jalur | Dipakai oleh | Cara kerja |
 |---|---|---|
-| **Login user** | Orang yang membuka dashboard | Login di `login.html` → dapat session token (berlaku 8 jam) → disimpan di browser → dikirim di setiap request dan koneksi WebSocket |
+| **Login user** | Orang yang membuka dashboard | Login di halaman web → dapat session token (berlaku 8 jam) → disimpan di browser → dikirim di setiap request dan koneksi WebSocket |
 | **Device API key** | Simulator/sensor pengirim data | Header `X-Device-Key` yang harus cocok dengan key di backend |
 
 Dipisah karena manusia dan perangkat perlu cara autentikasi yang berbeda — perangkat tidak bisa "mengisi form login" tiap kali mengirim data, tapi tetap harus diverifikasi supaya orang lain tidak bisa mengirim data sensor palsu ke sistem kamu.
