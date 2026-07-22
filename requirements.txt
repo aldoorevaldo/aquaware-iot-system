@@ -6,3 +6,6 @@ slowapi
 joblib
 requests
 python-multipart
+psycopg2-binary
+python-dotenv
+PyJWT

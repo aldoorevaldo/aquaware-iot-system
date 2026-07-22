@@ -44,7 +44,7 @@ export default function Login() {
             </div>
           </div>
           <h1 style={{ fontSize: '28px', background: 'linear-gradient(to right, #fff, #9ca3af)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '8px' }}>AquaAware</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Sistem Monitoring Kelayakan Air</p>
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Sistem Monitoring Kelayakan Air Bersih</p>
         </div>
 
         {error && (
