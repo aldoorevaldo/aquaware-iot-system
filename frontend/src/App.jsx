@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import { useState, useEffect } from 'react';
-import { supabase } from './lib/supabase';
+import { supabase } from './lib/supabase.js';
 
 function App() {
   const [session, setSession] = useState(null);

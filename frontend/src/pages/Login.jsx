@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Shield, Droplet } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase.js';
 
 export default function Login() {
   const [email, setEmail] = useState('');

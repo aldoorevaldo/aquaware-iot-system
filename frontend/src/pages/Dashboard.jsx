@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { LogOut, Activity } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../lib/supabase.js';
 import StatusOrb from '../components/StatusOrb';
 import SensorCharts from '../components/SensorCharts';
 import DataTable from '../components/DataTable';
