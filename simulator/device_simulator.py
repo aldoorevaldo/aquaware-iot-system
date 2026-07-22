@@ -16,6 +16,9 @@ import sys
 import os
 import requests
 import pandas as pd
+from dotenv import load_dotenv
+
+load_dotenv()
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "ml"))
 from preprocess import load_and_clean, FEATURES
