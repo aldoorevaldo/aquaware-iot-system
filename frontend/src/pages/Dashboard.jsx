@@ -19,9 +19,10 @@ export default function Dashboard({ session }) {
   useEffect(() => {
     if (!session?.access_token) return;
     const token = session.access_token;
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
     // Fetch initial history
-    fetch('http://localhost:8000/api/history?limit=30', {
+    fetch(`${API_URL}/api/history?limit=30`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
       .then(res => {
@@ -40,7 +41,8 @@ export default function Dashboard({ session }) {
 
     // Setup WebSocket
     const connectWs = () => {
-      ws.current = new WebSocket(`ws://localhost:8000/ws?token=${token}`);
+      const wsUrl = API_URL.replace(/^http/, 'ws');
+      ws.current = new WebSocket(`${wsUrl}/ws?token=${token}`);
       
       ws.current.onopen = () => setWsConnected(true);
       

@@ -4,7 +4,8 @@ export default function DataTable({ data, session }) {
   const handleExport = async () => {
     if (!session?.access_token) return;
     try {
-      const res = await fetch('http://localhost:8000/api/export', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const res = await fetch(`${API_URL}/api/export`, {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       if (!res.ok) throw new Error('Failed to export');
