@@ -25,7 +25,7 @@ from preprocess import load_and_clean, FEATURES
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "water_potability.csv")
 API_URL = os.environ.get("API_URL", "http://localhost:8000/api/sensor-data")
-INTERVAL_SECONDS = float(os.environ.get("INTERVAL_SECONDS", "10"))
+INTERVAL_SECONDS = float(os.environ.get("INTERVAL_SECONDS", "5"))
 DEVICE_ID = os.environ.get("DEVICE_ID", "sim-01")
 DEVICE_API_KEY = os.environ.get("DEVICE_API_KEY", "Aqua-Sensor-8257")
 HEADERS = {"X-Device-Key": DEVICE_API_KEY}
