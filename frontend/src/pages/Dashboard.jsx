@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { LogOut, Activity } from 'lucide-react';
+import { LogOut, Activity, Bell, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase.js';
 import StatusOrb from '../components/StatusOrb';
 import SensorCharts from '../components/SensorCharts';
@@ -10,6 +10,8 @@ export default function Dashboard({ session }) {
   const [history, setHistory] = useState([]);
   const [wsConnected, setWsConnected] = useState(false);
   const [latestData, setLatestData] = useState(null);
+  const [alerts, setAlerts] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const ws = useRef(null);
 
   const handleLogout = async () => {
@@ -63,6 +65,20 @@ export default function Dashboard({ session }) {
           if (updated.length > 50) updated.shift();
           return updated;
         });
+
+        // Smart Notification Logic
+        if (newRecord.prediction === 0 || newRecord.rule_based === 0) {
+          const reasonText = newRecord.reasons && newRecord.reasons.length > 0 
+            ? newRecord.reasons[0] 
+            : 'Terdeteksi anomali pada kualitas air (Prediksi ML: Tidak Layak)';
+          
+          setAlerts(prev => {
+            // Avoid duplicate alerts within the same second
+            if (prev.length > 0 && prev[0].ts === newRecord.ts) return prev;
+            const newAlert = { id: Date.now(), ts: newRecord.ts, message: reasonText };
+            return [newAlert, ...prev].slice(0, 15); // Simpan 15 notifikasi terakhir
+          });
+        }
       };
 
       ws.current.onclose = () => {
@@ -96,6 +112,59 @@ export default function Dashboard({ session }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          
+          {/* Notification Bell */}
+          <div style={{ position: 'relative' }}>
+            <button 
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: '50%', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-glass)', cursor: 'pointer', color: 'var(--text-muted)' }}
+              onClick={() => setShowNotifications(!showNotifications)}
+            >
+              <Bell size={18} />
+              {alerts.length > 0 && (
+                <div style={{ position: 'absolute', top: '0', right: '0', width: '10px', height: '10px', background: 'var(--neon-red)', borderRadius: '50%', border: '2px solid #0b1121' }}></div>
+              )}
+            </button>
+
+            {/* Dropdown Notifikasi */}
+            {showNotifications && (
+              <div className="glass-panel animate-fade-in" style={{ 
+                position: 'absolute', top: '48px', right: '0', width: '320px', 
+                padding: '0', zIndex: 100, boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                maxHeight: '400px', overflowY: 'auto'
+              }}>
+                <div style={{ padding: '16px', borderBottom: '1px solid var(--border-glass)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '14px', margin: 0, fontWeight: '600' }}>Notifikasi Cerdas</h3>
+                  {alerts.length > 0 && (
+                    <button onClick={() => setAlerts([])} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                      <Trash2 size={12} /> Bersihkan
+                    </button>
+                  )}
+                </div>
+                <div style={{ padding: '8px' }}>
+                  {alerts.length === 0 ? (
+                    <div style={{ padding: '24px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                      Kondisi air terpantau aman. Belum ada peringatan.
+                    </div>
+                  ) : (
+                    alerts.map(alert => (
+                      <div key={alert.id} style={{ 
+                        padding: '12px', background: 'rgba(239, 68, 68, 0.1)', 
+                        borderRadius: '8px', marginBottom: '8px', borderLeft: '3px solid var(--neon-red)' 
+                      }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                          {new Date(alert.ts).toLocaleTimeString()}
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#fff', lineHeight: '1.4' }}>
+                          {alert.message}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div style={{
             fontSize: '12px', fontWeight: '500', padding: '6px 14px', borderRadius: '99px',
             background: wsConnected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)',
