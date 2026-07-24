@@ -78,11 +78,19 @@ export default function DataTable({ data, session }) {
               </tr>
             ))}
             {data.length === 0 && (
-              <tr>
-                <td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Menunggu data sensor masuk...
-                </td>
-              </tr>
+              <>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <tr key={`skel-${i}`}>
+                    <td style={{ padding: '12px 16px' }}><div className="skeleton" style={{ height: '14px', width: '80px' }}></div></td>
+                    <td style={{ padding: '12px 16px' }}><div className="skeleton" style={{ height: '14px', width: '40px' }}></div></td>
+                    <td style={{ padding: '12px 16px' }}><div className="skeleton" style={{ height: '14px', width: '40px' }}></div></td>
+                    <td style={{ padding: '12px 16px' }}><div className="skeleton" style={{ height: '14px', width: '40px' }}></div></td>
+                    <td style={{ padding: '12px 16px' }}><div className="skeleton" style={{ height: '14px', width: '40px' }}></div></td>
+                    <td style={{ padding: '12px 16px' }}><div className="skeleton" style={{ height: '24px', width: '80px', borderRadius: '4px' }}></div></td>
+                    <td style={{ padding: '12px 16px' }}><div className="skeleton" style={{ height: '24px', width: '60px', borderRadius: '4px' }}></div></td>
+                  </tr>
+                ))}
+              </>
             )}
           </tbody>
         </table>

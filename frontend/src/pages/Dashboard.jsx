@@ -127,9 +127,40 @@ export default function Dashboard({ session }) {
             <KPICards data={latestData} />
           </>
         ) : (
-          <div className="glass-panel" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', marginBottom: '32px' }}>
-            <Activity size={32} style={{ marginBottom: '16px', opacity: 0.5 }} />
-            <p>Menunggu data sensor pertama masuk...</p>
+          <div style={{ marginBottom: '32px' }} className="animate-fade-in">
+            {/* Status Orb Skeleton */}
+            <div className="glass-panel" style={{ display: 'flex', alignItems: 'center', gap: '32px', padding: '32px', marginBottom: '32px' }}>
+              <div className="skeleton" style={{ width: '80px', height: '80px', borderRadius: '50%', flexShrink: 0 }}></div>
+              <div style={{ flex: 1 }}>
+                <div className="skeleton" style={{ height: '36px', width: '250px', marginBottom: '16px' }}></div>
+                <div className="skeleton" style={{ height: '16px', width: '80%', marginBottom: '8px' }}></div>
+                <div className="skeleton" style={{ height: '16px', width: '60%' }}></div>
+              </div>
+            </div>
+
+            {/* KPI Cards Skeleton */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="glass-panel" style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div className="skeleton" style={{ width: '48px', height: '48px', borderRadius: '12px' }}></div>
+                    <div style={{ flex: 1 }}>
+                      <div className="skeleton" style={{ height: '12px', width: '80%', marginBottom: '10px' }}></div>
+                      <div className="skeleton" style={{ height: '24px', width: '50%' }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="glass-panel" style={{ padding: '20px' }}>
+                <div className="skeleton" style={{ height: '18px', width: '180px', marginBottom: '16px' }}></div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                  {[1, 2, 3, 4, 5, 6].map(i => (
+                    <div key={i} className="skeleton" style={{ height: '45px', borderRadius: '8px' }}></div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
