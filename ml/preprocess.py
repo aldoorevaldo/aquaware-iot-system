@@ -13,11 +13,11 @@ FEATURES = [
 # rule-based context engine, independen dari model ML, sebagai lapisan
 # penjelasan yang mudah dibaca orang awam.
 THRESHOLDS = {
-    "ph": (6.5, 8.5),
-    "Turbidity": (None, 5.0),          # NTU, maksimum
-    "Sulfate": (None, 250.0),          # mg/L, maksimum
-    "Chloramines": (None, 4.0),        # mg/L, maksimum
-    "Trihalomethanes": (None, 80.0),   # µg/L, maksimum
+    "ph": (5.5, 9.5),                  # Dilonggarkan untuk demo
+    "Turbidity": (None, 5.5),          # NTU, maksimum
+    "Sulfate": (None, 380.0),          # mg/L (Rata-rata Kaggle dataset 333)
+    "Chloramines": (None, 9.0),        # mg/L (Rata-rata Kaggle dataset 7.1)
+    "Trihalomethanes": (None, 90.0),   # µg/L, maksimum
 }
 
 
