@@ -121,8 +121,9 @@ export default function Dashboard({ session }) {
         {latestData ? (
           <>
             <StatusOrb
-              status={latestData.prediction === 1 ? 1 : 0}
-              ruleBased={{ reasons: latestData.reasons }}
+              mlStatus={latestData.prediction}
+              ruleBasedStatus={latestData.rule_based}
+              reasons={latestData.reasons}
             />
             <KPICards data={latestData} />
           </>
