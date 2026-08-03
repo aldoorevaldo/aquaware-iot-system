@@ -170,6 +170,14 @@ async def ingest_sensor_data(request: Request, reading: SensorReading, _: bool =
     return payload
 
 
+def format_row(r):
+    d = dict(r)
+    for f in FEATURES:
+        if f.lower() in d:
+            d[f] = d.pop(f.lower())
+    return d
+
+
 @app.get("/api/latest")
 def get_latest(limit: int = 1, username: str = Depends(require_user)):
     con = psycopg2.connect(DATABASE_URL)
@@ -180,7 +188,7 @@ def get_latest(limit: int = 1, username: str = Depends(require_user)):
     rows = cursor.fetchall()
     cursor.close()
     con.close()
-    return [dict(r) for r in rows]
+    return [format_row(r) for r in rows]
 
 
 @app.get("/api/history")
@@ -193,7 +201,7 @@ def get_history(limit: int = 100, username: str = Depends(require_user)):
     rows = cursor.fetchall()
     cursor.close()
     con.close()
-    return [dict(r) for r in rows]
+    return [format_row(r) for r in rows]
 
 
 @app.get("/api/export")
@@ -213,10 +221,11 @@ def export_csv(limit: int = 1000, username: str = Depends(require_user)):
     output = io.StringIO()
     writer = csv.writer(output)
     
+    formatted_rows = [format_row(r) for r in rows]
     # Header
-    writer.writerow(rows[0].keys())
+    writer.writerow(formatted_rows[0].keys())
     # Baris data
-    for r in rows:
+    for r in formatted_rows:
         writer.writerow(tuple(r.values()))
         
     response = Response(content=output.getvalue(), media_type="text/csv")
