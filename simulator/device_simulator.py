@@ -1,15 +1,3 @@
-"""
-Device simulator — PENGGANTI hardware sensor selama belum tersedia.
-
-Membaca dataset baris demi baris dan mengirimkannya ke backend API dengan
-interval waktu tertentu, PERSIS seperti sensor asli akan mengirim data.
-Payload JSON-nya sengaja dibuat identik dengan skema SensorReading di
-backend/main.py, sehingga saat hardware (ESP32/Arduino) sudah ada, cukup
-ganti bagian "kirim data" ini dengan kode firmware yang publish ke endpoint
-yang sama — tidak ada perubahan pada backend maupun frontend.
-
-Jalankan: python simulator/device_simulator.py
-"""
 import time
 import random
 import sys
