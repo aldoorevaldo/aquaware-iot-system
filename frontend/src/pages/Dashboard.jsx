@@ -8,9 +8,10 @@ import KPICards from '../components/KPICards';
 
 export default function Dashboard({ session }) {
   const [history, setHistory] = useState([]);
-  const [wsConnected, setWsConnected] = useState(false);
+  const [deviceConnected, setDeviceConnected] = useState(false);
   const [latestData, setLatestData] = useState(null);
   const ws = useRef(null);
+  const deviceTimeout = useRef(null);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -44,9 +45,12 @@ export default function Dashboard({ session }) {
       const wsUrl = API_URL.replace(/^http/, 'ws');
       ws.current = new WebSocket(`${wsUrl}/ws?token=${token}`);
       
-      ws.current.onopen = () => setWsConnected(true);
-      
       ws.current.onmessage = (event) => {
+        setDeviceConnected(true);
+        if (deviceTimeout.current) clearTimeout(deviceTimeout.current);
+        deviceTimeout.current = setTimeout(() => {
+          setDeviceConnected(false);
+        }, 12000); // 12 seconds timeout (simulator sends every 5s)
         const payload = JSON.parse(event.data);
         const newRecord = {
           ts: payload.ts,
@@ -67,7 +71,7 @@ export default function Dashboard({ session }) {
 
       ws.current.onclose = () => {
         if (!isMounted) return;
-        setWsConnected(false);
+        setDeviceConnected(false);
         setTimeout(connectWs, 3000); // Reconnect
       };
     };
@@ -77,6 +81,7 @@ export default function Dashboard({ session }) {
     return () => {
       isMounted = false;
       if (ws.current) ws.current.close();
+      if (deviceTimeout.current) clearTimeout(deviceTimeout.current);
     };
   }, [session]);
 
@@ -98,17 +103,19 @@ export default function Dashboard({ session }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{
             fontSize: '12px', fontWeight: '500', padding: '6px 14px', borderRadius: '99px',
-            background: wsConnected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)',
-            border: `1px solid ${wsConnected ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-glass)'}`,
-            color: wsConnected ? '#34d399' : 'var(--text-muted)',
-            display: 'flex', alignItems: 'center', gap: '8px'
+            background: deviceConnected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+            border: `1px solid ${deviceConnected ? 'rgba(16, 185, 129, 0.2)' : 'var(--border-glass)'}`,
+            color: deviceConnected ? '#34d399' : 'var(--text-muted)',
+            display: 'flex', alignItems: 'center', gap: '8px',
+            transition: 'all 0.3s ease'
           }}>
             <div style={{
               width: '8px', height: '8px', borderRadius: '50%',
-              background: wsConnected ? '#10b981' : '#ef4444',
-              boxShadow: wsConnected ? '0 0 8px #10b981' : 'none'
+              background: deviceConnected ? '#10b981' : '#ef4444',
+              boxShadow: deviceConnected ? '0 0 8px #10b981' : 'none',
+              transition: 'all 0.3s ease'
             }}></div>
-            {wsConnected ? 'Connected' : 'Disconnected'}
+            {deviceConnected ? 'Sensor Connected' : 'Sensor Disconnected'}
           </div>
 
           <button onClick={handleLogout} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
