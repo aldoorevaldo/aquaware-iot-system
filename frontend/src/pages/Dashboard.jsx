@@ -11,11 +11,25 @@ export default function Dashboard({ session }) {
   const [deviceConnected, setDeviceConnected] = useState(false);
   const [latestData, setLatestData] = useState(null);
   const ws = useRef(null);
-  const deviceTimeout = useRef(null);
+  const lastMessageTime = useRef(0);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
+
+  // Heartbeat checker for device connection
+  useEffect(() => {
+    const checker = setInterval(() => {
+      // If we haven't received a message in the last 8 seconds, consider it disconnected.
+      // (Simulator sends data every 5 seconds).
+      if (Date.now() - lastMessageTime.current > 8000) {
+        setDeviceConnected(false);
+      } else {
+        setDeviceConnected(true);
+      }
+    }, 1000);
+    return () => clearInterval(checker);
+  }, []);
 
   useEffect(() => {
     if (!session?.access_token) return;
@@ -46,11 +60,7 @@ export default function Dashboard({ session }) {
       ws.current = new WebSocket(`${wsUrl}/ws?token=${token}`);
       
       ws.current.onmessage = (event) => {
-        setDeviceConnected(true);
-        if (deviceTimeout.current) clearTimeout(deviceTimeout.current);
-        deviceTimeout.current = setTimeout(() => {
-          setDeviceConnected(false);
-        }, 12000); // 12 seconds timeout (simulator sends every 5s)
+        lastMessageTime.current = Date.now();
         const payload = JSON.parse(event.data);
         const newRecord = {
           ts: payload.ts,
@@ -81,7 +91,6 @@ export default function Dashboard({ session }) {
     return () => {
       isMounted = false;
       if (ws.current) ws.current.close();
-      if (deviceTimeout.current) clearTimeout(deviceTimeout.current);
     };
   }, [session]);
 
