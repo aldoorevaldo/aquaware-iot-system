@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { LogOut, Activity } from 'lucide-react';
+import { LogOut, Activity, Play, Square } from 'lucide-react';
 import { supabase } from '../lib/supabase.js';
 import StatusOrb from '../components/StatusOrb';
 import SensorCharts from '../components/SensorCharts';
@@ -10,6 +10,7 @@ export default function Dashboard({ session }) {
   const [history, setHistory] = useState([]);
   const [deviceConnected, setDeviceConnected] = useState(false);
   const [latestData, setLatestData] = useState(null);
+  const [simulating, setSimulating] = useState(false);
   const ws = useRef(null);
   const lastMessageTime = useRef(0);
 
@@ -17,13 +18,39 @@ export default function Dashboard({ session }) {
     await supabase.auth.signOut();
   };
 
+  const handleSimulate = async () => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    const token = session?.access_token;
+    if (!token) return;
+
+    try {
+      if (simulating) {
+        await fetch(`${API_URL}/api/simulate/stop`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        setSimulating(false);
+      } else {
+        const res = await fetch(`${API_URL}/api/simulate?count=50&interval=5`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.status === 'started' || data.status === 'already_running') {
+          setSimulating(true);
+        }
+      }
+    } catch (err) {
+      console.error('Simulation error:', err);
+    }
+  };
+
   // Heartbeat checker for device connection
   useEffect(() => {
     const checker = setInterval(() => {
-      // If we haven't received a message in the last 8 seconds, consider it disconnected.
-      // (Simulator sends data every 5 seconds).
       if (Date.now() - lastMessageTime.current > 8000) {
         setDeviceConnected(false);
+        setSimulating(false);
       } else {
         setDeviceConnected(true);
       }
@@ -126,6 +153,25 @@ export default function Dashboard({ session }) {
             }}></div>
             {deviceConnected ? 'Sensor Connected' : 'Sensor Disconnected'}
           </div>
+
+          <button
+            onClick={handleSimulate}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              fontSize: '12px', fontWeight: '600', padding: '8px 16px', borderRadius: '99px',
+              border: 'none', cursor: 'pointer', transition: 'all 0.3s ease',
+              background: simulating
+                ? 'linear-gradient(135deg, #ef4444, #dc2626)'
+                : 'linear-gradient(135deg, #10b981, #059669)',
+              color: '#fff',
+              boxShadow: simulating
+                ? '0 0 12px rgba(239, 68, 68, 0.3)'
+                : '0 0 12px rgba(16, 185, 129, 0.3)',
+            }}
+          >
+            {simulating ? <Square size={14} /> : <Play size={14} />}
+            {simulating ? 'Hentikan Simulasi' : 'Mulai Simulasi'}
+          </button>
 
           <button onClick={handleLogout} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <LogOut size={16} /> Logout

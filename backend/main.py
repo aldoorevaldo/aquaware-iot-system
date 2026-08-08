@@ -247,6 +247,93 @@ async def websocket_endpoint(ws: WebSocket, token: str = Query(default=None)):
         manager.disconnect(ws)
 
 
+# ---------- server-side simulator ----------
+import asyncio
+import random
+
+DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data", "water_potability.csv")
+from preprocess import load_and_clean
+
+_sim_task: Optional[asyncio.Task] = None
+_sim_running = False
+
+
+async def _run_simulation(count: int, interval: float):
+    """Background task: reads random rows from dataset and ingests them."""
+    global _sim_running
+    _sim_running = True
+    try:
+        df = load_and_clean(DATA_PATH)
+        indices = list(df.index)
+        random.shuffle(indices)
+
+        sent = 0
+        for idx in indices:
+            if not _sim_running or sent >= count:
+                break
+            row = df.loc[idx]
+            data = {"device_id": "sim-cloud", **{f: float(row[f]) for f in FEATURES}}
+            ml_result = predict(data)
+            rb_result = rule_based_status(data)
+
+            ts = datetime.now(timezone.utc).isoformat()
+            con = psycopg2.connect(DATABASE_URL)
+            cursor = con.cursor()
+            cursor.execute(
+                f"""INSERT INTO readings
+                (ts, device_id, {", ".join(FEATURES)}, prediction, probability, rule_based)
+                VALUES (%s, %s, {", ".join(["%s"] * len(FEATURES))}, %s, %s, %s)""",
+                [ts, data["device_id"]] + [data[f] for f in FEATURES]
+                + [ml_result["prediction"], ml_result["probability"], int(rb_result["layak_rule_based"])],
+            )
+            con.commit()
+            cursor.close()
+            con.close()
+
+            payload = {
+                "ts": ts,
+                "device_id": data["device_id"],
+                "readings": {f: data[f] for f in FEATURES},
+                "ml": ml_result,
+                "rule_based": rb_result,
+            }
+            await manager.broadcast(payload)
+            sent += 1
+            await asyncio.sleep(interval)
+    finally:
+        _sim_running = False
+
+
+@app.post("/api/simulate")
+async def start_simulation(
+    count: int = Query(default=20, ge=1, le=100),
+    interval: float = Query(default=5.0, ge=1.0, le=30.0),
+    username: str = Depends(require_user),
+):
+    """Start cloud-based IoT simulation (no local simulator needed)."""
+    global _sim_task, _sim_running
+    if _sim_running:
+        return {"status": "already_running", "message": "Simulasi sudah berjalan."}
+    _sim_task = asyncio.create_task(_run_simulation(count, interval))
+    return {"status": "started", "message": f"Simulasi dimulai: {count} data, interval {interval}s."}
+
+
+@app.post("/api/simulate/stop")
+async def stop_simulation(username: str = Depends(require_user)):
+    """Stop the running cloud simulation."""
+    global _sim_running
+    if not _sim_running:
+        return {"status": "not_running", "message": "Tidak ada simulasi yang berjalan."}
+    _sim_running = False
+    return {"status": "stopped", "message": "Simulasi dihentikan."}
+
+
+@app.get("/api/simulate/status")
+async def simulation_status(username: str = Depends(require_user)):
+    """Check if a simulation is currently running."""
+    return {"running": _sim_running}
+
+
 @app.get("/")
 def root():
     return {"status": "ok", "message": "Water Quality Monitoring API aktif"}
